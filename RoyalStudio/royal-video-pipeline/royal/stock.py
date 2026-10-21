@@ -97,7 +97,9 @@ def prepare_stock(segs: list[dict], cfg: dict, library: Path, log) -> dict[int, 
     used = sorted(set(seg_concepts.values()))
     log.info("Stock concepts in this script: %s", ", ".join(used))
     if not key:
-        have = [c for c in used if (library / "Stock" / c / "_metadata.json").exists()]
+        vid_ext = {e.lower() for e in cfg["index"]["video_extensions"]}
+        have = [c for c in used if (library / "Stock" / c / "_metadata.json").exists()   # downloaded via the API
+                or any(p.suffix.lower() in vid_ext for p in (library / "Stock" / c).glob("*"))]   # or added by hand
         log.warning("No PEXELS_API_KEY in .env - using only stock clips already downloaded (%s)", ", ".join(have) or "none")
         return {sid: c for sid, c in seg_concepts.items() if c in have}
     for c in used:

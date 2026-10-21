@@ -45,6 +45,12 @@ PEXELS_API_KEY=your_key   (free at https://www.pexels.com/api/)
 ```
 Save and close. Don't share `.env` with anyone.
 
+**No Pexels key?** (Pexels sometimes pauses new keys.) The tool works without one. Leave the line blank and add
+stock clips by hand instead: download free videos from pexels.com or pixabay.com/videos and drop them into
+`Royal_Media_Library/Stock/<concept>/`, using these folder names: `court`, `lawyer`, `hospital`, `treatment`, `report`,
+`newspaper`, `broadcast`, `podcast`, `documents`, `phone`, `paparazzi`, `money`, `flowers`, `plane`, `montecito`,
+`beverly_hills`, `mansion`, `calendar`, `crowd`, `letters`, `social`. Then run `index_library.py` again.
+
 ## 5. Fill the media library
 Put clips and photos in `Royal_Media_Library` (`People/King_Charles/`, `Events/Coronation_2023/`, `Clips/…`, `Stock/`).
 See `royal-video-pipeline/README.md` for the full layout. Then index the library:
