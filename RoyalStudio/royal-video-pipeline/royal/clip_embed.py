@@ -7,7 +7,12 @@ from PIL import Image
 class ClipEmbedder:
     def __init__(self, model_name: str, pretrained: str):
         import open_clip
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            self.device = "cuda"
+        elif torch.backends.mps.is_available():    # Apple Silicon Mac GPU
+            self.device = "mps"
+        else:
+            self.device = "cpu"
         self.model, _, self.preprocess = open_clip.create_model_and_transforms(
             model_name, pretrained=pretrained, device=self.device)
         self.model.eval()

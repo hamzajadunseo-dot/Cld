@@ -22,7 +22,10 @@ from royal.transcribe import _cuda_dlls  # noqa: E402
 def transcribe(mp3: Path) -> str:
     _cuda_dlls()
     from faster_whisper import WhisperModel
-    m = WhisperModel("large-v3-turbo", device="cuda", compute_type="float16")
+    try:
+        m = WhisperModel("large-v3-turbo", device="cuda", compute_type="float16")
+    except Exception:
+        m = WhisperModel("large-v3-turbo", device="cpu", compute_type="int8")
     segs, _ = m.transcribe(str(mp3), language="en")
     text = " ".join(s.text.strip() for s in segs)
     return re.sub(r'(?<=[.?!"”])\s+(?=[A-Z“"])', "\n", text)

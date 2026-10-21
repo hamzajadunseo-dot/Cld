@@ -24,6 +24,7 @@ from royal.transcribe import _cuda_dlls  # noqa: E402
 
 W, H, FPS = 1920, 1080, 30
 F = "C:/Windows/Fonts/"
+MAC_FONTS = {"seguibl.ttf": "/System/Library/Fonts/Supplemental/Arial Black.ttf", "segoeuib.ttf": "/System/Library/Fonts/Supplemental/Arial Bold.ttf"}  # macOS stand-ins
 WHITE, GOLD = (255, 255, 255), (232, 192, 96)
 LOOK = ("eq=contrast=1.12:saturation=0.78:brightness=-0.03:gamma=0.97,colorbalance=rs=-0.03:bs=0.04:rh=0.03,"
         "vignette=angle=0.55,noise=alls=7:allf=t,setsar=1,fps=30,format=yuv420p")
@@ -60,7 +61,10 @@ def make_montage(clip, out, start, end, crop):
 
 
 def font(name, size):
-    return ImageFont.truetype(F + name, size)
+    path = F + name
+    if not Path(path).exists() and name in MAC_FONTS:
+        path = MAC_FONTS[name]
+    return ImageFont.truetype(path, size)
 
 
 def words_of(path):

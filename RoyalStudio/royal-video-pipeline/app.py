@@ -12,6 +12,7 @@ import json
 import os
 import re
 import secrets
+import signal
 import subprocess
 import sys
 import tempfile
@@ -62,6 +63,24 @@ def load_users() -> dict:
 
 def save_users(users: dict):
     USERS_FILE.write_text(json.dumps(users, indent=1), encoding="utf-8")
+
+
+def kill_tree(proc):
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True)
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def open_local(target: Path):
+    """Open a file or folder in Explorer / Finder."""
+    if os.name == "nt":
+        os.startfile(str(target))  # noqa: S606 - local desktop tool, owner only
+    else:
+        subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(target)])
 
 
 def is_local() -> bool:
@@ -196,7 +215,8 @@ def worker():
             fh.write(f"Started by {job['user']}\n")
             fh.flush()
             proc = subprocess.Popen(job["cmd"], cwd=str(ROOT), stdout=fh, stderr=subprocess.STDOUT, env=env,
-                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                                    start_new_session=os.name != "nt")   # own process group, so Stop kills ffmpeg too
             RUNNING.update(proc=proc, id=job["id"])
             code = proc.wait()
         RUNNING.clear()
@@ -261,7 +281,7 @@ def api_stop():
             return jsonify(ok=True)
         if job["status"] == "running" and RUNNING.get("id") == jid:
             job["stopping"] = True
-            subprocess.run(["taskkill", "/PID", str(RUNNING["proc"].pid), "/T", "/F"], capture_output=True)
+            kill_tree(RUNNING["proc"])
             return jsonify(ok=True)
     return jsonify(error="That job is already finished."), 400
 
@@ -497,7 +517,7 @@ def api_open():
               "missing": proj / f"{proj.name}_project" / "missing_assets.txt"}.get(what, proj)
     if not target.exists():
         return jsonify(error="File not found."), 404
-    os.startfile(str(target))  # noqa: S606 - local desktop tool, owner only
+    open_local(target)
     return jsonify(ok=True)
 
 
@@ -507,7 +527,7 @@ def api_open_library():
         return jsonify(error="Only on the studio PC."), 403
     sub = request.form.get("sub", "")
     target = LIBRARY / sub if sub in ("People", "Music", "SFX", "Events", "Stock") else LIBRARY
-    os.startfile(str(target))  # noqa: S606
+    open_local(target)
     return jsonify(ok=True)
 
 
