@@ -1,0 +1,14 @@
+# Install PyTorch with GPU support FIRST (see README):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+open_clip_torch
+onnxruntime-gpu==1.22.0   # CUDA 12 build, reuses the DLLs that ship with PyTorch cu126
+opencv-python
+anthropic
+python-dotenv
+pyyaml
+pillow
+numpy
+tqdm
+faster-whisper
+python-docx
+flask

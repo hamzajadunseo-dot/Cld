@@ -1,0 +1,1 @@
+See README.md in royal-video-pipeline for the folder layout (People/<Name>/, Stock/ ...).

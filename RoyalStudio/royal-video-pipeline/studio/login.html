@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Royal Video Studio</title>
+<style>
+  :root{--navy:#0d1b3d;--panel:#162a57;--line:#2a4278;--gold:#e8c060;--text:#eef2fb;--muted:#9fb0d4;--bad:#ff7a7a}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:linear-gradient(160deg,#0a1530,#0d1b3d 40%,#101f45);color:var(--text);font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:16px}
+  form{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;padding:28px}
+  .crest{width:44px;height:44px;border:2px solid var(--gold);border-radius:10px;display:grid;place-items:center;color:var(--gold);font-size:20px;margin-bottom:12px}
+  h1{margin:0 0 4px;font-size:21px} h1 span{color:var(--gold)}
+  p{color:var(--muted);margin:0 0 18px;font-size:13.5px}
+  label{display:block;font-weight:600;margin:12px 0 6px;font-size:14px}
+  input{width:100%;background:var(--navy);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:11px;font:inherit}
+  button{margin-top:20px;width:100%;background:var(--gold);color:var(--navy);border:0;padding:12px;border-radius:8px;font:inherit;font-weight:700;cursor:pointer}
+  .err{color:var(--bad);margin-top:12px;font-size:14px;min-height:20px}
+</style>
+</head>
+<body>
+<form id="f">
+  <div class="crest">♛</div>
+  <h1>Royal Video <span>Studio</span></h1>
+  <p>Team login</p>
+  <label for="name">Name</label><input id="name" autocomplete="username" required>
+  <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required>
+  <button type="submit">Log in</button>
+  <div class="err" id="err"></div>
+</form>
+<script>
+document.getElementById("f").onsubmit = async e => {
+  e.preventDefault();
+  const fd = new FormData(); fd.append("name", document.getElementById("name").value); fd.append("password", document.getElementById("pw").value);
+  const r = await fetch("/api/login", {method: "POST", body: fd}); const j = await r.json();
+  if (j.ok) location.href = "/"; else document.getElementById("err").textContent = j.error || "Login failed";
+};
+</script>
+</body>
+</html>

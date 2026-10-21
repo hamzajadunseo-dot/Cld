@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Royal Video Studio</title>
+<style>
+  :root{--navy:#0d1b3d;--panel:#162a57;--line:#2a4278;--gold:#e8c060;--text:#eef2fb;--muted:#9fb0d4;--ok:#5fd18a;--bad:#ff7a7a}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#0a1530,#0d1b3d 40%,#101f45);color:var(--text);font:15px/1.5 "Segoe UI",system-ui,sans-serif;min-height:100vh}
+  header{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);background:rgba(10,20,48,.6);flex-wrap:wrap}
+  .crest{width:38px;height:38px;border:2px solid var(--gold);border-radius:8px;display:grid;place-items:center;color:var(--gold);font-weight:700}
+  header h1{margin:0;font-size:20px;letter-spacing:.5px}
+  header h1 span{color:var(--gold)}
+  .who{margin-left:auto;display:flex;gap:12px;align-items:center;color:var(--muted);font-size:14px}
+  .who b{color:var(--text)}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:22px;padding:22px 28px;max-width:1500px;margin:auto}
+  @media(max-width:1000px){.wrap{grid-template-columns:1fr;padding:16px}}
+  nav{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  nav button{background:transparent;border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+  nav button.on{background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:600}
+  .card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:20px;margin-bottom:16px}
+  .card h2{margin:0 0 4px;font-size:17px}
+  .hint{color:var(--muted);font-size:13px;margin:0 0 14px}
+  label{display:block;font-weight:600;margin:14px 0 6px;font-size:14px}
+  input[type=text],input[type=password],textarea,select{width:100%;background:var(--navy);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font:inherit}
+  textarea{min-height:220px;resize:vertical;font-size:13.5px}
+  input[type=file]{color:var(--muted);max-width:100%}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .row>*{flex:1;min-width:160px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);background:var(--navy);color:var(--text);padding:6px 12px;border-radius:999px;cursor:pointer;font-size:13.5px;user-select:none}
+  .chip.on{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:600}
+  .btn{background:var(--gold);color:var(--navy);border:0;padding:11px 20px;border-radius:8px;cursor:pointer;font:inherit;font-weight:700;flex:0 0 auto!important;min-width:0!important}
+  .btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold)}
+  .btn.red{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+  .btn.sm{padding:5px 10px;font-size:13px;font-weight:600}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .preview{background:var(--navy);border:1px dashed var(--line);border-radius:8px;padding:12px;margin-top:12px;font-size:13.5px;display:none}
+  .preview b{color:var(--gold)}
+  .warn{color:#ffd27a}
+  .msg{margin-top:10px;font-size:14px}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
+  .tablewrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td,th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+  th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .lnk{color:var(--gold);cursor:pointer;margin-right:10px;white-space:nowrap;text-decoration:none}
+  .job{position:sticky;top:16px}
+  .bar{height:10px;background:var(--navy);border-radius:99px;overflow:hidden;border:1px solid var(--line);margin:10px 0}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),#f3d98f);transition:width .6s}
+  .log{background:#08122b;border:1px solid var(--line);border-radius:8px;padding:10px;height:300px;overflow:auto;font:12px/1.45 Consolas,monospace;color:#cfd8ee;white-space:pre-wrap}
+  .state{font-weight:700}
+  .state.run{color:var(--gold)} .state.done{color:var(--ok)} .state.fail{color:var(--bad)}
+  .qitem{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .tab{display:none} .tab.on{display:block}
+  small{color:var(--muted)}
+  .local-only{display:none} body.local .local-only{display:initial}
+  body.local nav button.local-only{display:inline-block}
+</style>
+</head>
+<body>
+<header>
+  <div class="crest">♛</div>
+  <h1>Royal Video <span>Studio</span></h1>
+  <div class="who"><span>Signed in as <b id="me">…</b></span><button class="btn ghost sm" id="logoutBtn" style="display:none" onclick="logout()">Log out</button></div>
+</header>
+
+<div class="wrap">
+<main>
+  <nav>
+    <button data-tab="new" class="on">New Video</button>
+    <button data-tab="hook">Replace Hook</button>
+    <button data-tab="intro">Intro Clip</button>
+    <button data-tab="projects">Projects</button>
+    <button data-tab="library">Library</button>
+    <button data-tab="team" class="local-only">Team</button>
+  </nav>
+
+  <!-- NEW VIDEO -->
+  <section class="tab on" id="tab-new">
+    <div class="card">
+      <h2>1 · Script</h2>
+      <p class="hint">Paste the script, or choose a .txt / .docx file. The hook is everything before the first
+        <b>CHAPTER</b> line (or before the first blank line if there are no chapters). Chapter titles are not read aloud.</p>
+      <textarea id="scriptText" placeholder="Paste the full script here…"></textarea>
+      <div class="row" style="margin-top:10px">
+        <input type="file" id="scriptFile" accept=".txt,.docx">
+        <button class="btn ghost" onclick="checkScript()">Check script</button>
+      </div>
+      <div class="preview" id="preview"></div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Voiceover</h2>
+      <p class="hint">The finished narration (mp3 / wav). It must read the same script.</p>
+      <input type="file" id="voFile" accept=".mp3,.wav,.m4a">
+    </div>
+
+    <div class="card">
+      <h2>3 · Whose video is it?</h2>
+      <p class="hint">Pick 1 person (the hook shows only them) or 2 for a couple video (e.g. Harry + Meghan).
+        Guests named in the hook (Tyler Perry, Oprah…) still appear on their line.</p>
+      <div class="chips" id="people"></div>
+    </div>
+
+    <div class="card">
+      <h2>4 · Make it</h2>
+      <div class="row">
+        <div><label for="name">Video name</label><input type="text" id="name" placeholder="e.g. harry_montecito_choice"></div>
+      </div>
+      <div style="margin-top:16px"><button class="btn" id="goBtn" onclick="makeVideo()">▶ Make Video</button></div>
+      <div class="msg" id="newMsg"></div>
+      <p class="hint" style="margin-top:12px">Takes about as long as the voiceover (25 min VO ≈ 25 min). If another video is running, yours waits in the queue.
+        The locked style is applied automatically: hook = video clips only, navy lower-thirds &amp; cards, no subtitles, clips first, no shot more than twice, fresh footage vs earlier videos.
+        Audio = voiceover only (no music, no sound effects).</p>
+    </div>
+  </section>
+
+  <!-- REPLACE HOOK -->
+  <section class="tab" id="tab-hook">
+    <div class="card">
+      <h2>Replace the hook</h2>
+      <p class="hint">Recorded a new hook? It replaces the old one: new hook voice + the old voiceover from chapter 1 onward,
+        then the whole video is rendered again. The old voiceover, script and video are kept as <i>_v1_oldhook</i>.</p>
+      <label>Project</label><select id="hookProject"></select>
+      <label>New hook voiceover</label><input type="file" id="hookFile" accept=".mp3,.wav,.m4a">
+      <label>Whose video <small>(leave as is unless it changed)</small></label><input type="text" id="hookSubject" placeholder="e.g. Prince_Harry">
+      <div style="margin-top:16px"><button class="btn" onclick="replaceHook()">▶ Replace hook &amp; render</button></div>
+      <div class="msg" id="hookMsg"></div>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section class="tab" id="tab-intro">
+    <div class="card">
+      <h2>Add the intro clip (locked style)</h2>
+      <p class="hint">A real speech / news clip played before the narration: 3-framing montage, dark cinematic filter,
+        gold word-synced quote text and a small archive tag. Saved as <i>&lt;name&gt;_final.mp4</i>.</p>
+      <label>Project (finished video)</label><select id="introProject"></select>
+      <label>Intro clip</label><input type="file" id="introFile" accept=".mp4,.mov,.mkv,.webm">
+      <div class="row">
+        <div><label>Archive tag</label><input type="text" id="introTag" placeholder="KING CHARLES III  ·  2022"></div>
+        <div><label>Crop out logos/text <small>(X,Y,W,H)</small></label><input type="text" id="introCrop" placeholder="optional, e.g. 0,0,1920,960"></div>
+      </div>
+      <div class="row">
+        <div><label>Start (s)</label><input type="text" id="introStart" placeholder="0"></div>
+        <div><label>End (s)</label><input type="text" id="introEnd" placeholder="end of clip"></div>
+      </div>
+      <div style="margin-top:16px"><button class="btn" onclick="addIntro()">▶ Add intro</button></div>
+      <div class="msg" id="introMsg"></div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section class="tab" id="tab-projects">
+    <div class="card">
+      <h2>Projects</h2>
+      <p class="hint">Every video made in the studio. Download the video, the Premiere XML (with all clips on the timeline) and the credits.</p>
+      <div class="tablewrap"><table><thead><tr><th>Name</th><th>Whose</th><th>By</th><th>Updated</th><th>Downloads</th></tr></thead>
+        <tbody id="projRows"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section class="tab" id="tab-library">
+    <div class="card">
+      <h2>Upload to the library</h2>
+      <p class="hint">Compilations (mp4) or photos of one person go into <b>People\&lt;Person&gt;</b>. Afterwards the library is indexed so
+        face recognition knows who is in every shot (a 10-min compilation ≈ 3 min). New person? Type the name like <i>Tyler_Perry</i>.</p>
+      <div class="row">
+        <div><label>Person</label><select id="upPerson"></select></div>
+        <div><label>…or a new person</label><input type="text" id="upNew" placeholder="e.g. Jennifer_Aniston"></div>
+      </div>
+      <label>Files</label><input type="file" id="upFiles" multiple accept=".mp4,.mov,.mkv,.webm,.m4v,.jpg,.jpeg,.png,.webp">
+      <div style="margin-top:8px"><label style="display:inline;font-weight:400"><input type="checkbox" id="upIndex" checked> index the library after upload</label></div>
+      <div style="margin-top:14px"><button class="btn" id="upBtn" onclick="upload()">⇪ Upload</button></div>
+      <div class="msg" id="upMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Library</h2>
+      <div class="row" style="gap:10px">
+        <button class="btn" onclick="indexLib()">⟳ Index new media</button>
+        <button class="btn ghost local-only" onclick="openLib('People')">Open People folder</button>
+        <button class="btn ghost local-only" onclick="openLib('Music')">Open Music folder</button>
+        <button class="btn ghost local-only" onclick="openLib('SFX')">Open SFX folder</button>
+      </div>
+      <div class="msg" id="libMsg"></div>
+      <label style="margin-top:18px">People in the library</label>
+      <div class="chips" id="peopleList"></div>
+    </div>
+  </section>
+
+  <!-- TEAM (only on the studio PC) -->
+  <section class="tab" id="tab-team">
+    <div class="card">
+      <h2>Team accounts</h2>
+      <p class="hint">Everyone on another computer logs in with one of these. Only this PC can open this tab.
+        Team members can make videos, replace hooks, upload to the library and download files — they cannot add accounts.</p>
+      <div class="tablewrap"><table><thead><tr><th>Name</th><th>Added</th><th></th></tr></thead><tbody id="teamRows"></tbody></table></div>
+      <div class="row" style="margin-top:14px">
+        <div><label>Name</label><input type="text" id="tName" placeholder="e.g. Bilal"></div>
+        <div><label>Password <small>(8+ characters)</small></label><input type="password" id="tPw" autocomplete="new-password"></div>
+      </div>
+      <div style="margin-top:14px"><button class="btn" onclick="addMember()">+ Add member</button></div>
+      <div class="msg" id="teamMsg"></div>
+    </div>
+  </section>
+</main>
+
+<aside>
+  <div class="card job">
+    <h2>Jobs</h2>
+    <div><span class="state" id="jobState">Idle</span> <small id="jobInfo"></small></div>
+    <div class="bar"><i id="jobBar"></i></div>
+    <div class="log" id="jobLog">No job yet.</div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn red sm" id="stopBtn" onclick="stopJob()" disabled>■ Stop</button>
+      <a class="btn ghost sm" id="dlBtn" style="display:none;text-decoration:none">⬇ Download video</a>
+    </div>
+    <label style="margin-top:16px">Waiting in queue</label><div id="queue"><small>Nothing waiting.</small></div>
+    <label style="margin-top:16px">Recently finished</label><div id="recent"><small>—</small></div>
+  </div>
+</aside>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const pretty = p => (p || "").replace(/_/g, " ");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let chosen = [], focusId = "", ME = {};
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + b.dataset.tab));
+  if (["projects", "hook", "intro"].includes(b.dataset.tab)) loadProjects();
+  if (b.dataset.tab === "team") loadTeam();
+});
+
+function msg(el, text, ok) { const m = $(el); m.textContent = text; m.className = "msg " + (ok ? "ok" : "err"); }
+async function api(url, body) {
+  const r = await fetch(url, body ? {method: "POST", body} : {});
+  if (r.status === 401) { location.href = "/login"; return {}; }
+  try { return await r.json(); } catch { return {error: "Server error (" + r.status + ")"}; }
+}
+function form(obj) { const fd = new FormData(); Object.entries(obj).forEach(([k, v]) => fd.append(k, v)); return fd; }
+
+async function loadMe() {
+  ME = await api("/api/me");
+  $("#me").textContent = ME.user || "";
+  document.body.classList.toggle("local", !!ME.local);
+  $("#logoutBtn").style.display = ME.local ? "none" : "";
+}
+async function logout() { await api("/api/logout", form({})); location.href = "/login"; }
+
+async function loadPeople() {
+  const ps = await api("/api/people");
+  $("#people").innerHTML = ""; $("#peopleList").innerHTML = "";
+  $("#upPerson").innerHTML = ps.map(p => `<option value="${esc(p)}">${esc(pretty(p))}</option>`).join("");
+  ps.forEach(p => {
+    const c = document.createElement("span"); c.className = "chip"; c.textContent = pretty(p); c.dataset.p = p;
+    c.onclick = () => {
+      if (chosen.includes(p)) chosen = chosen.filter(x => x !== p);
+      else { if (chosen.length >= 2) chosen.shift(); chosen.push(p); }
+      document.querySelectorAll("#people .chip").forEach(x => x.classList.toggle("on", chosen.includes(x.dataset.p)));
+    };
+    $("#people").appendChild(c);
+    const d = document.createElement("span"); d.className = "chip"; d.textContent = pretty(p); $("#peopleList").appendChild(d);
+  });
+}
+
+function scriptForm() {
+  const fd = new FormData(); const f = $("#scriptFile").files[0];
+  if (f) fd.append("script_file", f); else fd.append("script_text", $("#scriptText").value);
+  return fd;
+}
+
+async function checkScript() {
+  const j = await api("/api/preview", scriptForm());
+  const p = $("#preview"); p.style.display = "block";
+  if (j.error) { p.innerHTML = `<span class="warn">${esc(j.error)}</span>`; return; }
+  let warn = "";
+  if (!j.hook_words) warn = `<div class="warn">⚠ No hook found — add a CHAPTER line (or a blank line) where the hook ends.</div>`;
+  else if (j.hook_seconds > 200) warn = `<div class="warn">⚠ The hook is long (~${j.hook_seconds}s). Does it really end there? Add a CHAPTER line after it.</div>`;
+  if (j.sections > 30) warn += `<div class="warn">⚠ ${j.sections} sections — every blank line became a new chapter. Use CHAPTER lines instead.</div>`;
+  p.innerHTML = `<b>${j.words}</b> words · about <b>${j.minutes} min</b> · <b>${j.sections}</b> sections<br>
+    Hook: <b>${j.hook_words}</b> words (~${j.hook_seconds}s)<br>
+    <small>Hook starts:</small> “${esc(j.hook_start)}…”<br><small>Hook ends:</small> “…${esc(j.hook_end)}”${warn}`;
+}
+
+async function makeVideo() {
+  if (!$("#voFile").files[0]) return msg("#newMsg", "Choose the voiceover file.");
+  if (!chosen.length) return msg("#newMsg", "Choose whose video it is.");
+  const fd = scriptForm();
+  fd.append("vo", $("#voFile").files[0]);
+  fd.append("subject", chosen.join(","));
+  fd.append("name", $("#name").value || $("#voFile").files[0].name.replace(/\.[^.]+$/, ""));
+  $("#goBtn").disabled = true; msg("#newMsg", "Uploading…", true);
+  const j = await api("/api/new", fd);
+  $("#goBtn").disabled = false;
+  if (j.error) return msg("#newMsg", j.error);
+  msg("#newMsg", `“${j.project}” added to the queue — follow it on the right.`, true); poll();
+}
+
+async function loadProjects() {
+  const ps = await api("/api/projects");
+  if (!Array.isArray(ps)) return;
+  $("#hookProject").innerHTML = ps.map(p => `<option value="${esc(p.name)}">${esc(p.name)}${p.subject ? " — " + esc(pretty(p.subject)) : ""}</option>`).join("");
+  $("#introProject").innerHTML = ps.filter(p => p.video).map(p => `<option>${esc(p.name)}</option>`).join("");
+  const setSub = () => { const p = ps.find(x => x.name === $("#hookProject").value); $("#hookSubject").value = (p && p.subject) || ""; };
+  $("#hookProject").onchange = setSub; setSub();
+  $("#projRows").innerHTML = ps.map(p => {
+    const n = encodeURIComponent(p.name);
+    return `<tr><td><b>${esc(p.name)}</b></td><td>${esc(pretty(p.subject) || "—")}</td><td>${esc(p.user || "—")}</td><td><small>${esc(p.updated)}</small></td>
+    <td>${p.video ? `<a class="lnk" href="/files/${n}/video?dl=1">⬇ video <small>${p.size_mb} MB</small></a>` : "<small>not rendered</small> "}
+      ${p.final ? `<a class="lnk" href="/files/${n}/final?dl=1">⬇ with intro</a>` : ""}
+      ${p.xml ? `<a class="lnk" href="/files/${n}/xml">⬇ Premiere XML</a>` : ""}
+      ${p.credits ? `<a class="lnk" href="/files/${n}/credits">⬇ credits</a>` : ""}
+      ${p.missing ? `<a class="lnk" href="/files/${n}/missing" target="_blank">missing assets</a>` : ""}
+      ${ME.local && p.video ? `<a class="lnk" onclick="openP('${esc(p.name)}','video')">▶ play</a>` : ""}
+      ${ME.local ? `<a class="lnk" onclick="openP('${esc(p.name)}','folder')">folder</a>` : ""}</td></tr>`;
+  }).join("");
+}
+const openP = (project, what) => api("/api/open", form({project, what}));
+const openLib = sub => api("/api/open_library", form({sub}));
+
+async function replaceHook() {
+  const f = $("#hookFile").files[0]; if (!f) return msg("#hookMsg", "Choose the new hook voiceover.");
+  const j = await api("/api/replace_hook", form({project: $("#hookProject").value, hook: f, subject: $("#hookSubject").value}));
+  if (j.error) return msg("#hookMsg", j.error); msg("#hookMsg", "Added to the queue — follow it on the right.", true); poll();
+}
+
+async function addIntro() {
+  const f = $("#introFile").files[0]; if (!f) return msg("#introMsg", "Choose the intro clip.");
+  const j = await api("/api/intro", form({project: $("#introProject").value, clip: f, tag: $("#introTag").value,
+    crop: $("#introCrop").value, start: $("#introStart").value, end: $("#introEnd").value}));
+  if (j.error) return msg("#introMsg", j.error); msg("#introMsg", "Added to the queue — follow it on the right.", true); poll();
+}
+
+async function indexLib() {
+  const j = await api("/api/index", form({}));
+  if (j.error) return msg("#libMsg", j.error); msg("#libMsg", "Indexing added to the queue.", true); poll();
+}
+
+async function upload() {
+  const files = $("#upFiles").files; if (!files.length) return msg("#upMsg", "Choose the files.");
+  const fd = new FormData(); fd.append("person", $("#upNew").value.trim() || $("#upPerson").value);
+  fd.append("index", $("#upIndex").checked ? "1" : "0");
+  [...files].forEach(f => fd.append("files", f));
+  $("#upBtn").disabled = true; msg("#upMsg", `Uploading ${files.length} file(s)… big videos take a few minutes.`, true);
+  const j = await api("/api/library/upload", fd);
+  $("#upBtn").disabled = false;
+  if (j.error) return msg("#upMsg", j.error);
+  msg("#upMsg", `${j.saved} file(s) saved to People\\${j.person}.` + ($("#upIndex").checked ? " Indexing is in the queue." : ""), true);
+  $("#upFiles").value = ""; $("#upNew").value = ""; loadPeople(); poll();
+}
+
+async function loadTeam() {
+  const t = await api("/api/team"); if (!Array.isArray(t)) return;
+  $("#teamRows").innerHTML = t.map(u => `<tr><td><b>${esc(u.name)}</b></td><td><small>${esc(u.created)}</small></td>
+    <td><button class="btn red sm" onclick="removeMember('${esc(u.name)}')">Remove</button></td></tr>`).join("") || `<tr><td colspan="3"><small>No team accounts yet.</small></td></tr>`;
+}
+async function addMember() {
+  const j = await api("/api/team/add", form({name: $("#tName").value, password: $("#tPw").value}));
+  if (j.error) return msg("#teamMsg", j.error);
+  msg("#teamMsg", `Added ${$("#tName").value}. Send them the link and their password privately.`, true);
+  $("#tName").value = ""; $("#tPw").value = ""; loadTeam();
+}
+async function removeMember(name) { if (confirm("Remove " + name + "?")) { await api("/api/team/remove", form({name})); loadTeam(); } }
+
+async function stopJob(id) { if (confirm("Stop this job?")) { const j = await api("/api/stop", form({id: id || focusId})); if (j.error) alert(j.error); poll(); } }
+
+const ago = t => { const s = Math.round(Date.now() / 1000 - t); return s < 60 ? "just now" : s < 3600 ? Math.round(s / 60) + " min ago" : Math.round(s / 3600) + " h ago"; };
+let timer = null;
+async function poll() {
+  clearTimeout(timer);
+  const j = await api("/api/status");
+  const st = $("#jobState"), f = j.focus;
+  $("#queue").innerHTML = (j.queued || []).map((q, i) => `<div class="qitem"><span>${i + 1}. ${esc(q.kind)}${q.project ? " · <b>" + esc(q.project) + "</b>" : ""} <small>by ${esc(q.user)}</small></span>
+      <button class="btn red sm" onclick="stopJob('${q.id}')">Cancel</button></div>`).join("") || "<small>Nothing waiting.</small>";
+  $("#recent").innerHTML = (j.recent || []).map(r => `<div class="qitem"><span>${r.status === "done" ? "✓" : "✗"} ${esc(r.kind)}${r.project ? " · " + esc(r.project) : ""} <small>by ${esc(r.user)} · ${ago(r.ended)}</small></span>
+      ${r.status === "done" && r.kind !== "Index library" && r.project ? `<a class="lnk" href="/files/${encodeURIComponent(r.project)}/${r.kind === "Intro clip" ? "final" : "video"}?dl=1">⬇</a>` : ""}</div>`).join("") || "<small>—</small>";
+  if (!f) { st.textContent = "Idle"; st.className = "state"; timer = setTimeout(poll, 5000); return; }
+  focusId = f.id;
+  const mins = Math.floor(f.elapsed / 60), secs = f.elapsed % 60;
+  $("#jobInfo").textContent = `${f.kind}${f.project ? " · " + f.project : ""} · by ${f.user} · ${mins}m ${secs}s`;
+  $("#jobLog").textContent = f.log.join("\n") || "Starting…";
+  $("#jobLog").scrollTop = 1e9;
+  const running = f.status === "running";
+  $("#stopBtn").disabled = !running;
+  if (running) {
+    st.textContent = f.progress != null ? `Rendering ${f.progress}%` : "Working…"; st.className = "state run";
+    $("#jobBar").style.width = (f.progress != null ? 10 + f.progress * 0.85 : 6) + "%";
+    $("#dlBtn").style.display = "none";
+  } else {
+    const ok = f.status === "done";
+    st.textContent = ok ? "Done ✓" : (f.status === "stopped" ? "Stopped" : "Failed"); st.className = "state " + (ok ? "done" : "fail");
+    if (ok) $("#jobBar").style.width = "100%";
+    const dl = ok && f.project && f.kind !== "Index library";
+    $("#dlBtn").style.display = dl ? "" : "none";
+    if (dl) $("#dlBtn").href = `/files/${encodeURIComponent(f.project)}/${f.kind === "Intro clip" ? "final" : "video"}?dl=1`;
+  }
+  timer = setTimeout(poll, running || (j.queued || []).length ? 2000 : 5000);
+}
+
+loadMe().then(() => { loadPeople(); loadProjects(); poll(); });
+</script>
+</body>
+</html>

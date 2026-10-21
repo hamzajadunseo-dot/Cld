@@ -1,0 +1,288 @@
+# Royal Family Video Pipeline - settings
+# Paths can be absolute or relative to this folder. Use forward slashes.
+
+paths:
+  library: ../Royal_Media_Library     # the library folder sits next to royal-video-pipeline (portable)
+  data_dir: data                # index.db, caches, reports
+  models_dir: data/models       # face models are downloaded here on first run
+
+# ---------------------------------------------------------------- Stage 1: indexer
+index:
+  image_extensions: [.jpg, .jpeg, .png, .webp]
+  video_extensions: [.mp4, .mov, .mkv, .webm, .avi, .m4v]
+  audio_extensions: [.mp3, .wav, .m4a, .flac, .ogg]
+  work_image_side: 1600         # images are downscaled to this for analysis (originals untouched)
+  duplicate_similarity: 0.93    # CLIP similarity above which two visuals count as the same shot
+
+faces:
+  enabled: true
+  det_size: 640
+  det_threshold: 0.5
+  min_face_px: 36               # ignore tiny faces (crowds, far background)
+  match_threshold: 0.40         # cosine similarity needed to tag a person (higher = stricter)
+  match_margin: 0.06            # best person must beat the runner-up by this much
+  frames_per_shot: 3            # video frames sampled per shot for face tagging
+
+captions:
+  enabled: true
+  model: claude-haiku-4-5       # cheap + good at describing images; ~$2-3 per 1,000 assets
+  max_image_side: 1024          # image is shrunk before upload to save tokens
+  workers: 4                    # parallel API requests
+
+clip:
+  enabled: true
+  model: ViT-L-14-quickgelu
+  pretrained: openai
+
+scenes:
+  sample_fps: 4                 # frames per second looked at while scanning a video
+  scan_width: 1280              # frames are analysed at this width
+  threshold: 30.0               # colour change that counts as a cut (lower = more cuts)
+  min_shot_sec: 1.5             # shots shorter than this are dropped
+  max_shot_sec: 15.0            # long shots are split into chunks of this size
+
+# ---------------------------------------------------------------- Stage 4/5 rules (used later)
+rules:
+  no_repeat_within_sec: 60
+  max_uses_per_video: 2         # one shot never appears more than twice in a video
+  max_clip_shot_sec: 5
+  photo_min_sec: 3
+  photo_max_sec: 6
+  change_visual_every_sec: [2.5, 5.0]   # reference edit: median 3.6 s, average 3.9 s per shot
+
+output:
+  width: 1920
+  height: 1080
+  fps: 30
+  timeline_format: premiere_xml   # Premiere Pro (FCP7 XML)
+
+# ---------------------------------------------------------------- Stage 2: voiceover
+whisper:
+  model: large-v3-turbo         # fast + accurate; downloaded once (~1.6 GB)
+  language: en
+
+segments:
+  min_sec: 3.0
+  max_sec: 8.0
+
+# ---------------------------------------------------------------- Stage 3: script analysis
+analysis:
+  model: claude-opus-5-5        # reads the whole script to resolve "he", "the King", "his son"
+  effort: medium
+  chunk_segments: 40
+
+# names the narrator may use for each person folder (helps Claude + the no-API fallback)
+people_aliases:
+  King_Charles: [King Charles, Charles, King Charles III, Charles III, the King, Prince Charles]
+  Queen_Camilla: [Queen Camilla, Camilla, Duchess of Cornwall, Queen Consort, Camilla Parker Bowles]
+  Prince_William: [Prince William, William, Duke of Cambridge, Prince of Wales]
+  Princess_Catherine: [Princess Catherine, Catherine, Kate, Kate Middleton, Duchess of Cambridge, Princess of Wales]
+  Prince_Harry: [Prince Harry, Harry, Duke of Sussex]
+  Meghan_Markle: [Meghan, Meghan Markle, Duchess of Sussex]
+  Queen_Elizabeth_II: [Queen Elizabeth, Queen Elizabeth II, Elizabeth II, the late Queen, Her Late Majesty]
+  Princess_Anne: [Princess Anne, Anne, Princess Royal]
+  Princess_Diana: [Princess Diana, Diana, Lady Diana, Lady Di]
+  Prince_Edward: [Prince Edward, Edward, Earl of Wessex]
+
+# ---------------------------------------------------------------- Stage 4: matching
+matching:
+  min_score: 2.0                # below this a moment is logged in missing_assets.txt
+  allow_unlicensed: true        # your own clips without _metadata.json (listed separately in credits.txt)
+  clip_ratio: 0.85              # share of video clips; photos only where no good clip exists (user: use the clips)
+  history_penalty: 0.25         # per earlier video that already used a shot (fresh footage every video)
+  history_penalty_max: 2.0
+
+# ---------------------------------------------------------------- Stage 5: render
+render:
+  crossfade_sec: 0.4
+  ken_burns_zoom: 0.10          # photos zoom 10% over their time on screen
+  x264_preset: veryfast         # slower = smaller file, same quality
+  crf: 20                       # lower = higher quality
+  clean_film_scratches: true    # remove baked-in "old film" scratches & dust from clips
+  clip_edge_crop: 0.04          # trim 4% off clip edges (burned film borders)
+
+audio:                          # user 2026-10-14: no background music and no SFX from now on
+  music: false                  # true (or make_video --with-music) = background music again
+  sfx: false                    # true (or --with-sfx) = shutter / stop-down / pop sound effects again
+
+music:
+  volume_db: -16                # music level under the voice (it ducks further while speaking)
+  hook_boost_db: 5              # music is this much louder during the hook (cold-open energy)
+
+# ---------------------------------------------------------------- hook + on-screen text
+hook:
+  clips_only: true              # the hook uses video clips only (no photos / collages) - user rule
+  subject_only: true            # the hook shows ONLY the main subject (e.g. Harry), never other people or stock - user rule
+  stock_concepts: [montecito, beverly_hills, mansion]   # place stock allowed in the hook when the line is about it
+  cut_every_sec: [2.5, 5.0]     # same pace as the rest (reference edit: ~3.6 s per shot in the hook too)
+  default_sec: 0                # scripts without a '## HOOK' heading: fast cuts for the first N seconds (0 = off)
+
+callouts:
+  enabled: true
+  name_sec: 3.5                 # how long a name lower third stays
+  name_repeat_sec: 90           # same person is named again only after this
+  date_sec: 3.0
+  date_gap_sec: 12
+  event_sec: 3.5
+  event_repeat_sec: 120
+  # titles that changed hands (Prince of Wales = Charles until 2022, William after): no name card,
+  # because the right person depends on the story's year
+  skip_aliases: [Prince of Wales, Princess of Wales, Duke of Cambridge, Duchess of Cambridge, Duchess of Cornwall]
+  # phrase in the script -> text shown (lower third with an EVENT tag). Add your own.
+  events:
+    Oprah interview: The Oprah Interview · 2021
+    Netflix documentary: Netflix Series 'Harry & Meghan' · 2022
+    memoir, Spare: Memoir 'Spare' · 2023
+    meeting at Sandringham: The Sandringham Summit · January 2020
+    Sandringham: Sandringham Estate, Norfolk
+    Prince Philip's funeral: Funeral of Prince Philip · April 2021
+    St George's Chapel: St George's Chapel, Windsor
+    statue of their mother: Diana Statue Unveiling · July 2021
+    Kensington Palace: Kensington Palace
+    Windsor Castle: Windsor Castle
+    Clarence House: Clarence House
+    Westminster Abbey: Westminster Abbey
+    Buckingham Palace: Buckingham Palace
+    Highgrove: Highgrove House, Gloucestershire
+    Gatcombe Park: Gatcombe Park, Gloucestershire
+    Gordonstoun: Gordonstoun School, Scotland
+    Olympic Games: 1976 Montreal Olympics
+    Regency Act 1937: The Regency Act 1937
+    Counsellors of State Act: Counsellors of State Act 2022
+    Operation London Bridge: Operation London Bridge
+    interview to the BBC: BBC Interview · May 2025
+    court appeal: Security Court Appeal · 2025
+    The Mall: The Mall, London
+    Trooping the Colour: Trooping the Colour
+    coronation of King Charles: Coronation of King Charles III · May 2023
+    Royal Wedding: Royal Wedding
+    Montecito: Montecito, California
+    Frogmore Cottage: Frogmore Cottage, Windsor
+    Commonwealth Day service: Commonwealth Day Service · March 2020
+    Vancouver Island: Vancouver Island, Canada
+    Beverly Hills: Beverly Hills, Los Angeles
+    interview with Oprah Winfrey: The Oprah Interview · March 2021
+    Santa Barbara Cottage Hospital: Santa Barbara Cottage Hospital
+    Archewell Productions: Archewell Productions
+    Archewell Audio: Archewell Audio
+    deal with Netflix: Netflix Deal · ~$100 Million (reported)
+    signed with Spotify: Spotify Deal · ~$20 Million (reported)
+    Archetypes: Podcast 'Archetypes' · Spotify
+    Heart of Invictus: Netflix Series 'Heart of Invictus'
+    With Love, Meghan: Netflix Series 'With Love, Meghan' · 2025
+    As Ever: Lifestyle Brand 'As Ever' · 2025
+    Then there's Spare: Memoir 'Spare' · January 2023
+    Invictus Games: The Invictus Games · Founded 2014
+    Warrior Games: The Warrior Games · USA
+    Queen Elizabeth Olympic Park: Queen Elizabeth Olympic Park, London
+    Balmoral: Balmoral Castle, Scotland
+    Titles Deprivation Act: Titles Deprivation Act 1917
+    Duchy of Cornwall: The Duchy of Cornwall
+    Pasadena: Pasadena · LA Wildfires, January 2025
+    tour of Colombia: Tour of Colombia · August 2024
+    Confessions of a Female Founder: Podcast 'Confessions of a Female Founder'
+    Court of Appeal: Court of Appeal · May 2025
+    letters patent: Letters Patent · 1917
+    United States Constitution: U.S. Constitution · Titles of Nobility Clause
+    line of succession: Line of Succession
+    trademark office: U.S. Trademark Office
+    carol service: Together at Christmas · Carol Service
+    preventative chemotherapy: Preventative Chemotherapy
+    planned abdominal surgery: Planned Abdominal Surgery · January 2024
+    family photograph issued for Mother's Day: Mother's Day Photo · March 2024
+    in remission: In Remission · January 2025
+    benign prostate condition: Benign Prostate Treatment · January 2024
+    Royal Foundation Centre for Early Childhood: Royal Foundation Centre for Early Childhood · 2021
+    Shaping Us: "'Shaping Us' Campaign · 2023"
+    Adelaide Cottage: Adelaide Cottage, Windsor
+    Bucklebury: Bucklebury, Berkshire
+    Birkhall: Birkhall, Aberdeenshire
+    finished chemotherapy: Chemotherapy Completed · September 2024
+
+# lower-third text for each person (+ extra names that trigger it). Non-library people can be added too.
+people_titles:
+  King_Charles: {name: King Charles III, title: King of the United Kingdom, aliases: [His Majesty]}
+  Queen_Camilla: {name: Queen Camilla, title: Queen · Wife of King Charles III}
+  Prince_William: {name: Prince William, title: Prince of Wales · Heir to the throne}
+  Princess_Catherine: {name: Catherine, title: Princess of Wales}
+  Prince_Harry: {name: Prince Harry, title: Duke of Sussex}
+  Meghan_Markle: {name: Meghan, title: Duchess of Sussex}
+  Queen_Elizabeth_II: {name: Queen Elizabeth II, title: 1926 – 2022 · Reigned 70 years}
+  Princess_Anne: {name: Princess Anne, title: The Princess Royal}
+  Princess_Diana: {name: Diana, title: Princess of Wales · 1961 – 1997}
+  Prince_Edward: {name: Prince Edward, title: Duke of Edinburgh}
+  Prince_Philip: {name: Prince Philip, title: Duke of Edinburgh · 1921 – 2021, aliases: [Prince Philip, Philip]}
+  Sophie: {name: Sophie, title: Duchess of Edinburgh, aliases: [Sophie]}
+  Tyler_Perry: {name: Tyler Perry, title: Film-maker · Lilibet's godfather, aliases: [Tyler Perry, Perry]}
+  Jennifer_Aniston: {name: Jennifer Aniston, title: Actress · Hollywood star, aliases: [Jennifer Aniston, Jennifer]}
+  Rob_Lowe: {name: Rob Lowe, title: Actor · Montecito resident, aliases: [Rob Lowe]}
+  Oprah_Winfrey: {name: Oprah Winfrey, title: Talk-show host, aliases: [Oprah Winfrey, Oprah]}
+  Bill_Simmons: {name: Bill Simmons, title: Spotify executive · Podcaster, aliases: [Bill Simmons]}
+  Archie: {name: Prince Archie, title: Son of Harry & Meghan · born 2019, aliases: [Archie]}
+  Lilibet: {name: Princess Lilibet, title: Daughter of Harry & Meghan · born 2021, aliases: [Lilibet, Lili]}
+  Queen_Mother: {name: The Queen Mother, title: 1900 – 2002, aliases: [Queen Mother]}
+  Thomas_Markle: {name: Thomas Markle, title: Meghan's father, aliases: [Thomas Markle]}
+  Samantha_Markle: {name: Samantha Markle, title: Meghan's half-sister, aliases: [Samantha Markle]}
+  Mindy_Kaling: {name: Mindy Kaling, title: Actress · Writer, aliases: [Mindy Kaling]}
+  Jamie_Kern_Lima: {name: Jamie Kern Lima, title: Entrepreneur · Podcast guest, aliases: [Jamie Kern Lima]}
+  King_George_V: {name: King George V, title: Reigned 1910 – 1936, aliases: [King George the Fifth, George the Fifth]}
+  Prince_Andrew: {name: Andrew, title: Harry's uncle, aliases: [Andrew]}
+  Carole_Middleton: {name: Carole Middleton, title: Catherine's mother, aliases: [Carole Middleton, Carole]}
+  Chelsy_Davy: {name: Chelsy Davy, title: Harry's former girlfriend, aliases: [Chelsy Davy, Chelsy]}
+
+# ---------------------------------------------------------------- editing style (newsroom documentary)
+style:
+  enabled: true
+  layouts:            # share of shots per layout (split / collage only when they make sense)
+    full: 0.50
+    card: 0.35        # framed inset with white border + shadow on an animated background
+    split: 0.08       # two people side by side
+    collage: 0.07     # three polaroid photos
+  card_backgrounds: {navy: 1.0}   # LOCKED by user 2026-10-08: navy + white crosses + red/white stripe only
+  rounded_share: 0.25            # cards with rounded corners instead of a white border
+  transitions: {cut: 0.55, flash: 0.20, leak: 0.20, fade: 0.05}
+  hook_transitions: {cut: 0.55, flash: 0.20, leak: 0.20, fade: 0.05}   # same mix as the body
+  bw_before_year: 1995           # older photos are shown in black & white
+  hook_captions: false           # NO subtitles/captions in videos (user decision 2026-10-08) - keep off
+  sfx:
+    enabled: true
+    # loudness of each effect's loudest moment (dBFS). The voice sits around -17.
+    levels_db: {whoosh: -18, impact: -17, sub_drop: -15, riser: -21, swish: -24, shutter: -16, paper: -24, pop: -27}
+    callout_pop: true            # tiny pop when a name / event card appears
+
+# ---------------------------------------------------------------- stock footage (Pexels)
+# Needs PEXELS_API_KEY in .env. When a segment mentions one of these words, one shot in that
+# segment becomes a matching stock clip (also allowed in the hook - it follows the script).
+stock:
+  enabled: true
+  clips_per_concept: 5          # downloaded once, reused by every future video
+  max_share: 0.06               # user 2026-10-14: stock LESS - at most ~6% of shots (was 15%)
+  min_gap_sec: 30               # never two stock shots closer than this (was 8)
+  skip_first_sec: 150           # the opening (hook + start of chapter 1) is royal footage only
+  concepts:
+    court:      {words: [court, courts, courtroom, judge, judges, lawsuit, court appeal, security appeal, lost his appeal, ruling, legal battle, Court of Appeal], query: courtroom judge gavel}
+    lawyer:     {words: [lawyer, lawyers, legal, solicitor, attorney, lawyers on calls], query: lawyer reviewing documents}
+    hospital:   {words: [hospital, surgery, surgeon, operation, doctors, medical team, ward, wards, hospices, clinic], query: hospital corridor doctor}
+    treatment:  {words: [chemotherapy, treatment, cancer, diagnosis, diagnosed, recovery, prosthetic, amputation], query: chemotherapy hospital treatment}
+    report:     {words: [medical review, test, tests, results, scan, report, records, medical report], query: medical test report document}
+    newspaper:  {words: [newspaper, newspapers, front pages, front page, headlines, tabloid, tabloids, press], query: newspaper printing press headlines}
+    broadcast:  {words: [broadcasters, television, news cycle, cameras rolling, morning show, studio], query: tv news studio broadcast}
+    podcast:    {words: [podcast, interview, microphone, radio], query: podcast microphone studio}
+    documents:  {words: [document, documents, paperwork, letters patent, trademark, statement, draft, folder, signed, contract], query: official documents signing stamp}
+    phone:      {words: [phone, phone call, phone calls, text message, on the phone, email, video message], query: smartphone message hand}
+    paparazzi:  {words: [photographers, paparazzi, camera flashes, drone, picture agencies], query: press photographers camera flash}
+    money:      {words: [money, millions, million dollars, debts, mortgage, income, finances, bankrupt, funding], query: money counting cash}
+    flowers:    {words: [flowers, tributes, railings, cards tied, candles], query: flowers tribute memorial}
+    plane:      {words: [flew, flight, flights, airport, plane, Atlantic], query: airplane takeoff clouds}
+    montecito:  {words: [Montecito, Montecito home, Montecito estate, Montecito property], query: luxury mansion estate aerial california, count: 12}
+    beverly_hills: {words: [Beverly Hills, Beverly Hills estate], query: beverly hills mansion aerial, count: 8}
+    mansion:    {words: [mansion, estate, luxury estate, property, residence], query: luxury mansion gate, count: 10}
+    calendar:   {words: [diary, schedule, calendar, timetable, diary secretary], query: calendar planner schedule}
+    crowd:      {words: [crowd, crowds, fans, well-wishers, people at the gates, small groups], query: crowd gathering street london}
+    letters:    {words: [letters, letter, handwritten, cards tied, thank-you card, gift card], query: handwritten letter envelope}
+    social:     {words: [online, internet, social media, trend, viral, comments, platforms], query: scrolling social media phone}
+
+# ---------------------------------------------------------------- pacing (copied from the reference edit)
+pacing:
+  target_shot_sec: 3.6          # reference: median 3.6 s / average 3.9 s per shot, hook and body alike
+  min_shot_sec: 1.5             # cuts always land on a narrator pause (breath, comma, sentence end)
